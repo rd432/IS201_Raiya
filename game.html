@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wordle (Crochet Edition) with Hint</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color:  rgb(186, 138, 125) ;
+        }
+        .container {
+            text-align: center;
+            width: 300px;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        .row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .cell {
+            width: 40px;
+            height: 40px;
+            margin: 5px;
+            border: 2px solid #ddd;
+            text-align: center;
+            font-size: 20px;
+            line-height: 40px;
+            font-weight: bold;
+        }
+        .correct {
+            background-color: green;
+            color: white;
+        }
+        .present {
+            background-color: yellow;
+            color: white;
+        }
+        .absent {
+            background-color: gray;
+            color: white;
+        }
+        .input-row {
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            font-size: 18px;
+            width: 100px;
+            text-align: center;
+        }
+        button {
+            padding: 10px;
+            font-size: 16px;
+            margin-top: 10px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        #hintButton {
+            background-color: #7c559a;
+        }
+        #reloadButton {
+            background-color: #008CBA;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Wordle <br> (Crochet Edition)</h1>
+        <div id="game">
+            <div id="rows">
+                <!-- Rows for guesses will be inserted here -->
+            </div>
+            <div class="input-row">
+                <input type="text" id="guessInput" maxlength="5" placeholder="Enter word">
+                <button onclick="submitGuess()">Submit</button>
+            </div>
+            <div class="input-row">
+                <button id="hintButton" onclick="giveHint()">Hint</button>
+            </div>
+            <div class="input-row">
+                <button id="reloadButton" onclick="reloadGame()">Reload New Word</button>
+            </div>
+            <p id="message"></p>
+        </div>
+    </div>
+
+    <script>
+        // List of valid 5-letter crochet-related words
+        const crochetWords = ["yarn", "hook", "scarf", "fiber", "skein", "wool", "chain", "crochet", "frog", "amigurumi"];
+        let solution, wordLength, guesses, currentRow, hintUsed;
+
+        function initializeGame() {
+            // Reset game variables
+            solution = crochetWords[Math.floor(Math.random() * crochetWords.length)];
+            wordLength = solution.length;
+            guesses = [];
+            currentRow = 0;
+            hintUsed = false;
+
+            // Clear previous rows
+            document.getElementById('rows').innerHTML = '';
+
+            // Create new rows based on word length
+            for (let i = 0; i < 5; i++) {
+                createRow();
+            }
+
+            // Clear message and enable buttons
+            document.getElementById('message').textContent = '';
+            document.getElementById('hintButton').disabled = false;
+            document.getElementById('reloadButton').disabled = false;
+        }
+
+        function createRow() {
+            const row = document.createElement('div');
+            row.classList.add('row');
+            for (let i = 0; i < wordLength; i++) { // Use dynamic word length
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                row.appendChild(cell);
+            }
+            document.getElementById('rows').appendChild(row);
+        }
+
+        function checkGuess(guess) {
+            let feedback = Array(wordLength).fill('absent'); // Default feedback is 'absent'
+            let solutionArray = solution.split('');
+            let guessArray = guess.split('');
+
+            // First, check for correct positions (green)
+            for (let i = 0; i < wordLength; i++) {
+                if (guessArray[i] === solutionArray[i]) {
+                    feedback[i] = 'correct';
+                    solutionArray[i] = null; // Mark this letter as used
+                    guessArray[i] = null; // Mark this letter as guessed correctly
+                }
+            }
+
+            // Then, check for present letters (yellow) in the wrong positions
+            for (let i = 0; i < wordLength; i++) {
+                if (guessArray[i] !== null && solutionArray.includes(guessArray[i])) {
+                    feedback[i] = 'present';
+                    solutionArray[solutionArray.indexOf(guessArray[i])] = null; // Mark this letter as used
+                }
+            }
+
+            return feedback;
+        }
+
+        function updateRowFeedback(feedback, guess) {
+            const row = document.getElementsByClassName('row')[currentRow];
+            const cells = row.getElementsByClassName('cell');
+            for (let i = 0; i < wordLength; i++) {
+                cells[i].textContent = guess[i].toUpperCase();
+                cells[i].classList.add(feedback[i]);
+            }
+        }
+
+        function submitGuess() {
+            const guessInput = document.getElementById('guessInput');
+            const guess = guessInput.value.toLowerCase();
+
+            if (guess.length !== wordLength || !/^[a-zA-Z]+$/.test(guess)) {
+                alert('Please enter a valid word.');
+                return;
+            }
+
+            guesses.push(guess);
+            const feedback = checkGuess(guess);
+            updateRowFeedback(feedback, guess);
+
+            if (guess === solution) {
+                document.getElementById('message').textContent = "You guessed the word! 🎉";
+                document.getElementById('message').style.color = "green";
+                document.getElementById('hintButton').disabled = true; // Disable hint button once the word is guessed
+            } else {
+                currentRow++;
+                if (currentRow === 6) {
+                    document.getElementById('message').textContent = "Game Over! The word was " + solution.toUpperCase();
+                    document.getElementById('message').style.color = "red";
+                    document.getElementById('hintButton').disabled = true; // Disable hint button when game ends
+                }
+            }
+
+            guessInput.value = '';
+        }
+
+        function giveHint() {
+            if (hintUsed) {
+                alert('You have already used your hint!');
+                return;
+            }
+
+            let randomIndex;
+            // Loop until we find a letter to reveal
+            do {
+                randomIndex = Math.floor(Math.random() * wordLength);
+            } while (document.querySelector('.row').children[randomIndex].textContent); // Ensure no letter has been revealed yet
+
+            const row = document.getElementsByClassName('row')[currentRow];
+            const cells = row.getElementsByClassName('cell');
+            cells[randomIndex].textContent = solution[randomIndex].toUpperCase(); // Reveal one letter at a random position
+            hintUsed = true;
+        }
+
+        // Reload the game with a new word
+        function reloadGame() {
+            initializeGame(); // Reinitialize game state and UI
+        }
+
+        // Initialize the game when the page loads
+        window.onload = initializeGame;
+    </script>
+</body>
+</html>
